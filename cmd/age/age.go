@@ -281,7 +281,7 @@ func main() {
 	case decryptFlag:
 		decryptNotPass(identityFlags, in, out)
 	case passFlag:
-		encryptPass(in, out, armorFlag)
+		encryptPass(in, out, armorFlag, passValueFlag)
 	default:
 		encryptNotPass(recipientFlags, recipientsFileFlags, identityFlags, in, out, armorFlag)
 	}
@@ -359,14 +359,13 @@ func encryptNotPass(recs, files []string, identities identityFlags, in io.Reader
 	encrypt(recipients, in, out, armor)
 }
 
-func encryptPass(in io.Reader, out io.Writer, armor bool) {
-	pass := passValueFlag
+func encryptPass(in io.Reader, out io.Writer, armor bool, pass string) {
 	var err error
 
 	if pass == "" {
 		pass, err = passphrasePromptForEncryption()
 	}
-	
+
 	if err != nil {
 		errorf("%v", err)
 	}
