@@ -107,7 +107,7 @@ func main() {
 	}
 
 	var (
-		outFlag                          string
+		outFlag, passValueFlag           string
 		decryptFlag, encryptFlag         bool
 		passFlag, versionFlag, armorFlag bool
 		recipientFlags                   multiFlag
@@ -122,6 +122,7 @@ func main() {
 	flag.BoolVar(&encryptFlag, "encrypt", false, "encrypt the input")
 	flag.BoolVar(&passFlag, "p", false, "use a passphrase")
 	flag.BoolVar(&passFlag, "passphrase", false, "use a passphrase")
+	flag.StringVar(&passValueFlag, "passphrase-value", "", "passhrase value")
 	flag.StringVar(&outFlag, "o", "", "output to `FILE` (default stdout)")
 	flag.StringVar(&outFlag, "output", "", "output to `FILE` (default stdout)")
 	flag.BoolVar(&armorFlag, "a", false, "generate an armored file")
@@ -359,7 +360,13 @@ func encryptNotPass(recs, files []string, identities identityFlags, in io.Reader
 }
 
 func encryptPass(in io.Reader, out io.Writer, armor bool) {
-	pass, err := passphrasePromptForEncryption()
+	pass := passValueFlag
+	var err error
+
+	if pass == "" {
+		pass, err = passphrasePromptForEncryption()
+	}
+	
 	if err != nil {
 		errorf("%v", err)
 	}
