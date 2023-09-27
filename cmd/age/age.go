@@ -24,18 +24,19 @@ import (
 
 const usage = `Usage:
     age [--encrypt] (-r RECIPIENT | -R PATH)... [--armor] [-o OUTPUT] [INPUT]
-    age [--encrypt] --passphrase [--armor] [-o OUTPUT] [INPUT]
+    age [--encrypt] --passphrase [--armor] [--passphrase-value] [-o OUTPUT] [INPUT]
     age --decrypt [-i PATH]... [-o OUTPUT] [INPUT]
 
 Options:
-    -e, --encrypt               Encrypt the input to the output. Default if omitted.
-    -d, --decrypt               Decrypt the input to the output.
-    -o, --output OUTPUT         Write the result to the file at path OUTPUT.
-    -a, --armor                 Encrypt to a PEM encoded format.
-    -p, --passphrase            Encrypt with a passphrase.
-    -r, --recipient RECIPIENT   Encrypt to the specified RECIPIENT. Can be repeated.
-    -R, --recipients-file PATH  Encrypt to recipients listed at PATH. Can be repeated.
-    -i, --identity PATH         Use the identity file at PATH. Can be repeated.
+    -e,  --encrypt               Encrypt the input to the output. Default if omitted.
+    -d,  --decrypt               Decrypt the input to the output.
+    -o,  --output OUTPUT         Write the result to the file at path OUTPUT.
+    -a,  --armor                 Encrypt to a PEM encoded format.
+    -p,  --passphrase            Encrypt with a passphrase.
+	-pv, --passphrase-value     Passhrase value to use that will skip the prompt.
+    -r,  --recipient RECIPIENT   Encrypt to the specified RECIPIENT. Can be repeated.
+    -R,  --recipients-file PATH  Encrypt to recipients listed at PATH. Can be repeated.
+    -i,  --identity PATH         Use the identity file at PATH. Can be repeated.
 
 INPUT defaults to standard input, and OUTPUT defaults to standard output.
 If OUTPUT exists, it will be overwritten.
@@ -122,6 +123,7 @@ func main() {
 	flag.BoolVar(&encryptFlag, "encrypt", false, "encrypt the input")
 	flag.BoolVar(&passFlag, "p", false, "use a passphrase")
 	flag.BoolVar(&passFlag, "passphrase", false, "use a passphrase")
+	flag.StringVar(&passValueFlag, "pv", "", "passhrase value")
 	flag.StringVar(&passValueFlag, "passphrase-value", "", "passhrase value")
 	flag.StringVar(&outFlag, "o", "", "output to `FILE` (default stdout)")
 	flag.StringVar(&outFlag, "output", "", "output to `FILE` (default stdout)")
@@ -277,7 +279,7 @@ func main() {
 
 	switch {
 	case decryptFlag && len(identityFlags) == 0:
-		decryptPass(in, out)
+		decryptPass(in, out, passValueFlag)
 	case decryptFlag:
 		decryptNotPass(identityFlags, in, out)
 	case passFlag:
@@ -442,11 +444,22 @@ func decryptNotPass(flags identityFlags, in io.Reader, out io.Writer) {
 	decrypt(identities, in, out)
 }
 
-func decryptPass(in io.Reader, out io.Writer) {
+func decryptPass(in io.Reader, out io.Writer, pass string) {
 	identities := []age.Identity{
 		// If there is an scrypt recipient (it will have to be the only one and)
 		// this identity will be invoked.
 		&LazyScryptIdentity{passphrasePromptForDecryption},
+	}
+
+	if pass != "" {
+		getPassFn := func() (string, error) {
+			return pass, nil
+		}
+		identities = []age.Identity{
+			// If there is an scrypt recipient (it will have to be the only one and)
+			// this identity will be invoked.
+			&LazyScryptIdentity{getPassFn},
+		}
 	}
 
 	decrypt(identities, in, out)
