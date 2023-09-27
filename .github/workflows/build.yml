@@ -4,6 +4,8 @@ on:
     types: [published]
   push:
   pull_request:
+  workflow_dispatch:
+    inputs: {}
 permissions:
   contents: read
 jobs:
